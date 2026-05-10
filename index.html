@@ -1691,7 +1691,11 @@ function tryAnswer(el){
   function endRound(ok, pickedElOrNull, timeout=false){
   clearInterval(roundTimer); stopTimebar();
 
-  if (ok){ score+=1; } else { score-=1; }
+  if (ok){ 
+  score += 1; 
+} else { 
+  score = Math.max(0, score - 1); 
+}
   updateHUD();
   flyScoreForEl(pickedElOrNull||null, ok);
 
