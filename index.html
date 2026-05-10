@@ -1,0 +1,2053 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>พิชิตด่าน ตัวการันต์</title>
+<style>
+
+/* ===== ฟอนต์รวมหน้า ===== */
+@font-face{
+  font-family: 'MyGameFont';
+  src: url('image/THSarabunNew.woff2') format('woff2'),
+       url('image/THSarabunNew.woff') format('woff'),
+       url('image/THSarabunNew.ttf') format('truetype');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face{
+  font-family: 'MyGameFont';
+  src: url('image/THSarabunNewBold.woff2') format('woff2'),
+       url('image/THSarabunNewBold.woff') format('woff'),
+       url('image/THSarabunNewBold.ttf') format('truetype');
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+html, body, button, input, select, textarea, .pill, .btn, .btn-mini,
+.levelBtn, #startTitle, #countdown, .label, #timer {
+  font-family: 'MyGameFont', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+}
+
+:root{
+  --glass: rgba(0,0,0,.45);
+  --ok: #10b981;
+  --bad: #ef4444;
+  --hud-top: 15px;                 
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+
+
+*{ box-sizing:border-box }
+html,body{ height:100%; margin:0 }
+body{
+  background: url("image/background2.png") center center / cover no-repeat fixed !important;
+  overflow:hidden; color:#fff;
+}
+#game{ position:relative; width:100vw; height:100vh; overflow:hidden }
+
+/* ===== HUD ===== */
+.hud{
+  position:fixed;
+  inset: calc(var(--safe-top) + var(--hud-top)) 5px auto 38px !important;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  justify-content:space-between;
+  pointer-events:none;
+  z-index:40000;
+}
+
+body:not(.in-game):not(.prestart) .hud {
+  display: none !important;
+}
+body:not(.in-game) #clock {
+  display: none !important;
+}
+
+/* ===== Game Clock ===== */
+#clock.clock-pill{
+  position:fixed;
+  top:14px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:16000;
+  pointer-events:none;
+  --clock-size: 40px;
+  font-size: var(--clock-size);
+  background: var(--glass);
+  backdrop-filter: blur(6px);
+  color:#fff;
+  font-weight:1000;
+  line-height:1;
+  border-radius:999px;
+  padding:8px 16px;
+  box-shadow:0 4px 18px rgba(0,0,0,.25);
+  text-shadow:0 3px 10px rgba(0,0,0,.55);
+}
+@media (max-width:480px){
+  #clock.clock-pill{ --clock-size: 28px; padding:6px 12px; }
+}
+
+.pill{ background:var(--glass); backdrop-filter:blur(6px); padding:8px 12px; border-radius:999px; box-shadow:0 4px 18px rgba(0,0,0,.25) }
+#timer{ font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:.5px; font-size:20px }
+.btn-mini{ pointer-events:auto; background:#1f2937; color:#fff; border:none; border-radius:12px; padding:8px 12px; font-weight:800; cursor:pointer; box-shadow:0 4px 18px rgba(0,0,0,.25) }
+.btn-mini:hover{ filter:brightness(1.1) }
+
+.score-label{ font-size:20px; font-weight:900; color:#fff; margin-bottom:6px; text-align:center; width:100%; margin-top:-4px; }
+
+.pill.gold{
+  --score-size: 42px;
+  background: var(--glass);
+  border-radius: 12px;
+  padding: 6px 12px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: calc(var(--score-size) * 1.6);
+  box-shadow: 0 4px 18px rgba(0,0,0,.25);
+}
+.pill.gold .num{
+  font-size: var(--score-size);
+  font-weight: 1000;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .5px;
+}
+
+@media (max-width:480px){ .pill.gold{ --gold-size:24px; --gold-cols:8; --gold-rows:2 } }
+
+/* ===== Welcome / Landing ===== */
+#landing{
+  position:fixed; inset:0; display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  background:url("image/background2.png") center/cover no-repeat fixed !important;
+  z-index:20000; transition:opacity .3s ease;
+  overflow:hidden;
+}
+#landing.hide{ opacity:0; pointer-events:none; visibility:hidden }
+#landing .brand{ width:min(92vw,1100px) }
+#landing .brand img{ width:100%; height:auto; display:block; filter:drop-shadow(0 10px 30px rgba(0,0,0,.6)) }
+
+#welcome{
+  position:fixed; inset:0;
+  background:url("image/welcome.png") center/cover no-repeat fixed;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:24px; z-index:25000;
+  transition:opacity .3s ease;
+  overflow:hidden;
+}
+#welcome.hide{ opacity:0; pointer-events:none; visibility:hidden }
+
+/* ===== welcome-content: กรอบ full 100% ===== */
+#welcome .welcome-content{
+  position:relative;
+  width:100%; height:100%;
+  display:flex; align-items:center; justify-content:center;
+}
+
+/* ===== Responsive Scale Group: welcome ===== */
+#welcome .welcome-inner{
+  position:relative;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:clamp(10px,2dvh,24px);
+  transform:scale(var(--welcome-scale,1));
+  transform-origin:center center;
+  will-change:transform;
+}
+
+/* ===== Responsive Scale Group: landing ===== */
+#landing .landing-inner{
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:clamp(12px,2.4dvh,26px);
+  transform:scale(var(--landing-scale,1));
+  transform-origin:center center;
+  will-change:transform;
+}
+
+/* ===== Banner welcome ===== */
+#welcome .brand{
+  width:min(90vw,1000px);
+  margin-bottom:100px;
+  display:flex; justify-content:center;
+}
+#welcome .brand img{
+  width:min(150%,1400px);
+  max-width:150%;
+  height:auto; max-height:75dvh;
+  object-fit:contain; display:block;
+  animation:pulse 3s infinite ease-in-out;
+  filter:drop-shadow(0 6px 18px rgba(0,0,0,.45));
+}
+
+/* ===== enterBtn: absolute ล่างกลาง ===== */
+#welcome #enterBtn{
+  position:absolute;
+  left:50%; bottom:12dvh;
+  transform:translateX(-50%);
+  padding:12px 28px;
+  font-size:clamp(22px,4vw,36px);
+  font-weight:1000; letter-spacing:.2px;
+  border:0; border-radius:16px;
+  color:#fff; background:rgba(0,0,0,.55);
+  box-shadow:0 10px 28px rgba(0,0,0,.35);
+  cursor:pointer; backdrop-filter:blur(6px);
+  border:1px solid rgba(255,255,255,.18);
+  transition:transform .15s ease, filter .15s ease, box-shadow .15s ease;
+  white-space:nowrap;
+}
+#welcome #enterBtn:hover{
+  transform:translateX(-50%) scale(1.08);
+  filter:brightness(1.12);
+  box-shadow:0 16px 38px rgba(0,0,0,.45), 0 0 20px rgba(255,255,255,.18);
+}
+#welcome #enterBtn:active{
+  transform:translateX(-50%) scale(0.95);
+  filter:brightness(.95);
+}
+
+/* ===== levelBtn responsive ===== */
+.level-menu{ display:flex; flex-direction:column; gap:14px; width:min(92vw,640px) }
+.levelBtn{
+  width:82%; max-width:520px; min-width:280px; margin:0 auto;
+  padding:10px 16px;
+  font-size:clamp(20px,4vw,34px); font-weight:1000; letter-spacing:.2px;
+  border:0; border-radius:14px;
+  color:#fff; background:rgba(0,0,0,.55);
+  box-shadow:0 10px 28px rgba(0,0,0,.35);
+  cursor:pointer; text-align:center;
+  border:1px solid rgba(255,255,255,.18);
+  backdrop-filter:blur(6px);
+  transition:transform .15s ease, filter .15s ease, box-shadow .15s ease;
+}
+.levelBtn:hover{
+  transform:scale(1.08);
+  filter:brightness(1.12);
+  box-shadow:0 16px 38px rgba(0,0,0,.45), 0 0 20px rgba(255,255,255,.18);
+}
+
+@keyframes pulse{ 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.04);opacity:.9} }
+.level-menu{ display:flex; flex-direction:column; gap:14px; width:min(92vw,640px) }
+.levelBtn{ width:100%; padding:10px 16px; font-size:clamp(20px,4vw,34px); font-weight:1000; letter-spacing:.2px; border:0; border-radius:14px; color:#fff; background:rgba(0,0,0,.55); box-shadow:0 10px 28px rgba(0,0,0,.35); cursor:pointer; text-align:center; border:1px solid rgba(255,255,255,.18); backdrop-filter:blur(6px) }
+
+/* ===== หน้าเริ่ม/นับถอยหลัง ===== */
+#startScreen{
+  position:fixed;
+  inset:0;
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  background:rgba(0,0,0,.9);
+  z-index:30000;       
+  text-align:center;
+  padding:24px;
+}
+
+#startTitle{ font-size:clamp(26px,5vw,48px); font-weight:900; margin-bottom:10px }
+#startBtn{ margin-top:12px; padding:10px 18px; border:0; border-radius:12px; font-weight:800; cursor:pointer; background:#1f2937; color:#fff }
+#countdown{ display:none; font-size:clamp(56px,12vw,120px); font-weight:1000; line-height:1; margin-top:8px }
+
+/* ===== กล่องคำถามข้อความ (ใหม่: แสดงโจทย์ตัวการันต์) ===== */
+#questionBox{
+  position: fixed;
+  top: var(--qTop);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(8px);
+  border: 2px solid rgba(255,255,255,0.25);
+  border-radius: 20px;
+  padding: 18px 36px;
+  font-size: clamp(36px, 7vw, 90px);
+  font-weight: 1000;
+  color: #fff;
+  text-shadow: 0 4px 12px rgba(0,0,0,.8);
+  z-index: 10;
+  white-space: nowrap;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  transition: transform 520ms cubic-bezier(.2,.9,.2,1), opacity 520ms;
+}
+
+/* ไฮไลต์ช่องว่าง (ตัวการันต์) */
+#questionBox .blank-slot {
+  display: inline-block;
+  min-width: 60px;
+  color: #fbbf24;
+  font-weight: 1000;
+  margin: 0 4px;
+  text-align: center;
+  vertical-align: baseline;
+}
+
+/* ซ่อน qStrip เดิม (ไม่ใช้แล้ว) */
+#qStrip { display: none !important; }
+#qImg   { display: none !important; }
+
+/* ===== ตัวเลือกแบบวงกลม 2 ปุ่ม ===== */
+.option.circle{
+  position:absolute;
+  width: var(--c-sz, clamp(120px, 18vw, 220px));
+  height: var(--c-sz, clamp(120px, 18vw, 220px));
+  border-radius:50%;
+  border:10px solid transparent;
+  background:
+    radial-gradient(35% 35% at 30% 30%, rgba(255,255,255,.18), rgba(255,255,255,0) 60%) padding-box,
+    var(--ring, linear-gradient(130deg,#999,#666)) border-box;
+  box-shadow:0 8px 28px rgba(0,0,0,.35);
+  display:grid; place-items:center;
+  cursor:pointer; user-select:none; z-index:12;
+  transition: top 800ms cubic-bezier(.2,.9,.2,1),
+             left 800ms cubic-bezier(.2,.9,.2,1);
+}
+
+.option.circle .label{ 
+       font-weight:1000; 
+       font-size:clamp(18px,2.2vw,32px); 
+       color:#fff; 
+       text-align:center; 
+       text-shadow:0 3px 10px rgba(0,0,0,.6); 
+       padding:0 10px; line-height:1.15 }
+
+.option.circle.live {
+  background: rgba(0,0,0,.55);                  
+  border: 10px solid #d97706;                    
+  box-shadow: 0 6px 18px rgba(0,0,0,.35);       
+}
+
+.option.circle.non {
+  background: rgba(0,0,0,.55);                  
+  border: 10px solid #a855f7;                  
+  box-shadow: 0 6px 18px rgba(0,0,0,.35);      
+}
+
+.option.circle {
+  --c-sz: clamp(140px, 20vw, 240px);        
+}
+
+.option.circle.in-anim {
+  animation: zoomInBounce 650ms cubic-bezier(.25,.8,.25,1) forwards;
+  transform: scale(0.3);
+  opacity: 0;
+}
+
+@keyframes zoomInBounce {
+  0%   { transform: scale(0.3); opacity: 0; }
+  60%  { transform: scale(1.1); opacity: 1; }  
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+.option.circle{
+  --pulse-min: 1;
+  --pulse-max: 1.08;
+  --pulse-dur: 1200ms;
+  --pulse-delay: 0ms;
+}
+
+@keyframes circlePulse {
+  0%   { transform: scale(var(--pulse-min)); }
+  50%  { transform: scale(var(--pulse-max)); }
+  100% { transform: scale(var(--pulse-min)); }
+}
+
+.option.circle.pulse-loop{
+  animation: circlePulse var(--pulse-dur) ease-in-out var(--pulse-delay) infinite;
+}
+
+/* ปรับขนาดตัวอักษรในวงกลมให้รองรับตัวการันต์ */
+.option.circle .label {
+  font-size: clamp(28px, 5vw, 72px);
+  font-weight: 900;
+  letter-spacing: .5px;
+  color: #fff;
+}
+
+.option.circle.glow{
+  filter: drop-shadow(0 0 10px rgba(250,204,21,.70)) drop-shadow(0 0 18px rgba(250,204,21,.55));
+}
+
+/* ===== แถบเวลา ===== */
+#timebarWrap{ position:fixed; left:0; right:0; bottom:0; height:12px; background:rgba(255,255,255,.12); z-index:16000; border-top:1px solid rgba(255,255,255,.2) }
+#timebar{ height:100%; width:0%; background:#10b981; transition:width .1s linear }
+
+/* ===== เอฟเฟกต์/Toast/ภาพผลลัพธ์ ===== */
+#flash{ position:fixed; inset:0; background:transparent; pointer-events:none; z-index:17000 }
+.flash-clear{ animation: flashC 2000ms ease-out }
+@keyframes flashC{ 0%{background:rgba(255,255,255,.55)} 100%{background:transparent} }
+
+.flash-in{ animation: flashIn .35s ease-out }
+@keyframes flashIn{
+  0%{ opacity:0; transform:translate(-50%,-50%) scale(1.04); box-shadow:0 0 0 0 rgba(255,255,255,0), 0 0 0 0 rgba(255,255,255,0) }
+  30%{ opacity:1; box-shadow:0 0 24px 6px rgba(255,255,255,.75), 0 0 64px 12px rgba(255,255,255,.55) }
+  100%{ opacity:1; transform:translate(-50%,-50%) scale(1); box-shadow:none }
+}
+.flash-in-cover{ animation: flashInCover .35s ease-out }
+@keyframes flashInCover{
+  0%{ opacity:0; box-shadow:0 0 0 0 rgba(255,255,255,0), 0 0 0 0 rgba(255,255,255,0) }
+  30%{ opacity:1; box-shadow:0 0 24px 6px rgba(255,255,255,.75), 0 0 64px 12px rgba(255,255,255,.55) }
+  100%{ opacity:1; box-shadow:none }
+}
+
+#roundToast{
+  position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
+  background:rgba(0,0,0,.78); border:1px solid rgba(255,255,255,.22);
+  padding:18px 26px; border-radius:16px; font-size:clamp(22px,3vw,34px); font-weight:900;
+  z-index:17500; display:none; text-align:center; white-space:nowrap; line-height:1.25;
+}
+#roundToast .q{ display:block }
+#roundToast .a{ display:block; margin-top:.15em; opacity:.95 }
+#roundToast .r{ display:block; margin-top:.35em; font-weight:1000 }
+#roundToast .r.ok{ color:var(--ok) }
+#roundToast .r.bad{ color:var(--bad) }
+
+#ansImg{
+  position:fixed; inset:0; width:100vw; height:100vh; object-fit:cover; object-position:center;
+  opacity:.95; filter: drop-shadow(0 20px 60px rgba(0,0,0,.50));
+  z-index:17499; display:none; pointer-events:none;
+}
+
+/* ===== กล้อง/แคนวาส AR ===== */
+#cameraMirror{ position:fixed; inset:0; width:100vw; height:100vh; object-fit:cover; transform: scaleX(-1); z-index:1; display:none; background:#000 }
+#camCanvas{ position:fixed; inset:0; width:100vw; height:100vh; z-index:2; pointer-events:none; display:none }
+#game{ z-index:3; position:relative }
+
+#muteBtn, #fsBtn, #guideBtn{
+  position: fixed;
+  right: 12px;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: rgba(0,0,0,.45);
+  border: 1px solid rgba(255,255,255,.3);
+  color: #fff;
+  font-size: 18px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  z-index: 50000;
+}
+
+#muteBtn{ bottom:62px }
+#fsBtn{ bottom:112px }
+#guideBtn{ bottom:12px }
+
+body::after{ content:""; position:fixed; top:0; left:0; width:var(--corner-img-w, 220px); height:var(--corner-img-h, 220px); background:url("image/button1.png") no-repeat left top / contain; pointer-events:none; z-index:10000 }
+body::before{ content:""; position:fixed; top:0; right:0; width:var(--corner2-img-w, 200px); height:var(--corner2-img-h, 200px); background:url("image/button2.png") no-repeat right top / contain; pointer-events:none; z-index:10000 }
+
+/* ===== คะแนนลอยขึ้น (+1 / -1) ===== */
+.fly-score{
+  position:fixed;
+  left:0; top:0;
+  font-weight:1000;
+  font-size:clamp(64px, 7vw, 120px);
+  pointer-events:none;
+  z-index:20000;
+  opacity:0;
+  transform:translate(-50%,-10px);
+  animation:flyUp 900ms ease-out forwards;
+  text-shadow:0 4px 14px rgba(0,0,0,.45);
+}
+.fly-score.ok{ color:#10b981; }
+.fly-score.bad{ color:#ef4444; }
+
+@keyframes flyUp{
+  0%   { opacity:0; transform:translate(-50%, 10px) scale(.96); }
+  15%  { opacity:1; transform:translate(-50%, 0)    scale(1); }
+  100% { opacity:0; transform:translate(-50%, -60px) scale(1.06); }
+}
+
+.option.circle.flip-out {
+  animation: flipOut 600ms ease forwards;
+}
+
+.option.circle.pop-out{
+  animation: popOut 620ms cubic-bezier(.2,.9,.2,1) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes popOut{
+  0%   { transform: scale(1);    opacity: 1; }
+  45%  { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(0);    opacity: 0; }
+}
+
+@keyframes flipOut {
+  0%   { transform: rotateY(0deg) scale(1); opacity:1; }
+  50%  { transform: rotateY(180deg) scale(1.1); opacity:0.9; }
+  100% { transform: rotateY(360deg) scale(0.8); opacity:0; }
+}
+
+#timebarWrap{ display:none !important }
+
+.option.circle.fade-out {
+  animation: fadeOut 600ms ease forwards;
+}
+
+@keyframes fadeOut {
+  0%   { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.9); }
+}
+
+:root{
+  --qTop: 12vh;
+  --qLeft: 50%;
+  --qFontMin: 24px;
+  --qFontVW:  25vw;
+  --qFontMax: 100px;
+}
+
+@media (max-width:420px){
+  .option.circle { --c-sz: clamp(110px, 28vw, 180px); }
+}
+
+.option.circle {
+  overflow: visible;
+  contain: layout paint;
+}
+
+.fx{
+  --fxX: 0;
+  --fxY: 0;
+  --fxS: 1;
+  will-change: transform, opacity;
+  transition: transform 520ms cubic-bezier(.2,.9,.2,1), opacity 520ms;
+}
+.in-pre { opacity:0; --fxY: -40px; }
+.in-go  { opacity:1; --fxY: 0;     }
+.out-left  { opacity:0; --fxX: -90px; }
+.out-right { opacity:0; --fxX:  90px; }
+
+.option.circle.choiceA {
+  background: rgba(0,0,0,.55);
+  border: 10px solid #a855f7;
+  box-shadow: 0 6px 18px rgba(0,0,0,.35);
+}
+.option.circle.choiceB {
+  background: rgba(0,0,0,.55);
+  border: 10px solid #d97706;
+  box-shadow: 0 6px 18px rgba(0,0,0,.35);
+}
+
+.hud {
+  position: initial !important;
+  inset: auto !important;
+}
+
+.hud .left,
+.hud .right {
+  position: fixed !important;
+  top: var(--hud-top) !important;
+  z-index: 40000 !important;
+  pointer-events: none;
+}
+
+.hud .left { left: 20px !important; }
+.hud .right { right: 20px !important; }
+
+.hud .btn-mini {
+  pointer-events: auto;
+}
+
+/* ===== Result Panel ===== */
+.result-panel{
+  --panel-bg: rgba(20,20,20,.92);
+  --panel-br: 20px;
+  --panel-bd: 1px solid rgba(255,255,255,.12);
+  --shadow: 0 20px 60px rgba(0,0,0,.55);
+  background: var(--panel-bg);
+  border: var(--panel-bd);
+  padding: clamp(20px, 4vw, 32px);
+  border-radius: var(--panel-br);
+  width: min(92vw, 640px);
+  display: grid;
+  grid-template-rows: auto auto auto auto;
+  gap: clamp(12px, 2vw, 18px);
+  text-align: center;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(6px);
+}
+
+.result-title{
+  margin: 0;
+  font-weight: 1000;
+  font-size: clamp(28px, 4.5vw, 44px);
+  letter-spacing: .2px;
+  text-shadow: 0 4px 14px rgba(0,0,0,.35);
+}
+
+.badge{
+  font-size: clamp(56px, 10vw, 120px);
+  line-height: 1;
+  filter: drop-shadow(0 8px 24px rgba(0,0,0,.45));
+  margin-top: 6px;
+  margin-bottom: 4px;
+}
+
+.result-metrics{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(10px, 2vw, 16px);
+  margin-top: 4px;
+}
+
+.metric{
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 16px;
+  padding: clamp(10px, 2vw, 16px);
+  box-shadow: 0 8px 26px rgba(0,0,0,.25) inset, 0 8px 24px rgba(0,0,0,.25);
+}
+
+.metric .label{
+  font-size: clamp(14px, 2.2vw, 18px);
+  opacity: .9;
+  margin-bottom: 4px;
+}
+
+.metric .value{
+  font-size: clamp(28px, 5.5vw, 52px);
+  font-weight: 1000;
+  line-height: 1;
+  letter-spacing: .3px;
+}
+
+.result-actions{
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.btn{
+  appearance: none;
+  border: none;
+  border-radius: 14px;
+  padding: clamp(10px, 2.2vw, 14px) clamp(16px, 3.5vw, 24px);
+  font-weight: 900;
+  font-size: clamp(16px, 2.8vw, 20px);
+  cursor: pointer;
+  box-shadow: 0 10px 28px rgba(0,0,0,.35);
+  transition: transform .08s ease, filter .15s ease, box-shadow .15s ease;
+}
+
+.btn:active{ transform: translateY(1px) scale(.99); }
+
+.btn.strong{
+  color: #fff;
+  background: linear-gradient(180deg, #3b82f6, #1d4ed8);
+  border: 1px solid rgba(255,255,255,.15);
+}
+.btn.strong:hover{ filter: brightness(1.08); }
+
+.btn.ghost{
+  color: #fff;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18);
+}
+.btn.ghost:hover{ filter: brightness(1.1); }
+
+/* Dragon System */
+#dragonLayer{
+  position: fixed;
+  inset: 0;
+  display: none;
+  pointer-events: none;
+  z-index: 18000;
+}
+
+#dragonFly{
+  position: absolute;
+  right: -60vw;
+  top: 30vh;
+  width: var(--dragon-w, clamp(320px, 50vw, 900px));
+  height: auto;
+  filter: drop-shadow(0 18px 40px rgba(0,0,0,.45));
+  will-change: transform;
+}
+
+</style>
+</head>
+<body>
+
+<!-- ==== AR Mirror ==== -->
+<video id="cameraMirror" playsinline muted></video>
+<canvas id="camCanvas"></canvas>
+
+<div id="game" aria-label="สนามเกม">
+  <!-- กล่องคำถามข้อความ (ใช้งานแทนระบบภาพเดิม) -->
+  <div id="questionBox" aria-live="polite"></div>
+  <!-- ซ่อนระบบรูปเดิม -->
+  <img id="qImg" alt="" style="display:none" />
+  <div id="qStrip" class="qstrip" aria-label="ภาพคำถาม" style="display:none"></div>
+</div>
+
+<!-- ===== Welcome ===== -->
+<div id="welcome" role="dialog" aria-modal="true">
+  <div class="welcome-content">
+    <div class="welcome-inner">
+      <div class="brand"><img src="image/banner2.png" alt="Banner"></div>
+    </div>
+  </div>
+  <button id="enterBtn">เข้าสู่เกม</button>
+</div>
+
+<!-- ===== Landing ===== -->
+<div id="landing" role="dialog" aria-modal="true" class="hide">
+  <div class="landing-inner">
+    <div class="brand"><img src="image/banner2.png" alt="Banner"></div>
+    <div class="level-menu">
+      <button class="levelBtn" data-level="1">ด่านที่ 1</button>
+      <button class="levelBtn" data-level="2">ด่านที่ 2</button>
+      <button class="levelBtn" data-level="3">ด่านที่ 3</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ภารกิจ / หน้าเริ่ม ===== -->
+<div id="startScreen">
+  <div id="startTitle">ภารกิจ : เลือกตัวการันต์ให้ถูกต้อง</div>
+  <button id="startBtn">เริ่ม</button>
+  <div id="countdown">3</div>
+</div>
+
+<!-- ===== คู่มือ ===== -->
+<div id="guideScreen" style="display:none; position:fixed; inset:0; align-items:center; justify-content:center; background:url('image/background2.png') center/cover no-repeat; z-index:20001">
+  <div class="guide-wrap" style="width:min(95vw, 1200px); max-height:92vh; display:flex; flex-direction:column; gap:10px; align-items:center; justify-content:center">
+    <img src="image/guide.png" alt="คู่มือเกม" style="width:100%; height:auto; max-height:92vh; border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,.55); display:block">
+    <button id="guideBack" class="btn-mini">เมนูหลัก</button>
+  </div>
+</div>
+
+<!-- ===== HUD ===== -->
+<div class="hud">
+  <div class="left">
+    <div class="stack">
+      <div style="display:flex; gap:8px;">
+        <button id="quickRestart" class="btn-mini">หน้าหลัก</button>
+        <button id="pauseBtn" class="btn-mini">⏸ หยุด</button>
+        <button id="camBtn" class="btn-mini">📷: ปิด</button>
+      </div>
+    </div>
+  </div>
+  <div class="right">
+    <div class="stack" style="align-items:flex-end">
+      <div class="score-label">คะแนน</div>
+      <div id="goldWrap" class="pill gold" aria-live="polite" title="คะแนน"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== แถบเวลา ===== -->
+<div id="timebarWrap"><div id="timebar"></div></div>
+<div id="flash"></div>
+<div id="roundToast"></div>
+<img id="ansImg" src="" alt="answer background">
+
+<!-- Dragon System -->
+<div id="dragonLayer" aria-hidden="true">
+  <img id="dragonFly" alt="dragon" />
+</div>
+
+<!-- เสียงมังกร -->
+<audio id="dragonSound" preload="auto" src="image/dragon.mp3"></audio>
+
+<!-- ===== ป๊อปอัปจบด่าน ===== -->
+<div id="overlay" style="visibility:hidden; opacity:0; transition:.25s; position:fixed; inset:0; display:grid; place-items:center; background:rgba(0,0,0,.55); z-index:9999">
+  <div class="result-panel">
+    <div class="badge" id="scoreBadge" aria-hidden="true">🏆</div>
+    <h1 class="result-title" id="endTitle">หมดเวลา</h1>
+    <div class="result-metrics">
+      <div class="metric">
+        <div class="label">คะแนน</div>
+        <div class="value"><b id="finalScore">0</b></div>
+      </div>
+    </div>
+    <div class="result-actions">
+      <button class="btn strong" id="restartBtn">เริ่มใหม่</button>
+      <button class="btn ghost" id="selectLevelBtn">กลับสู่หน้าหลัก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== เสียง ===== -->
+<audio id="hitSound" preload="auto" src="image/audio1.mp3"></audio>
+<audio id="winSound" preload="auto" src="image/win2.mp3"></audio>
+<audio id="bgm" preload="auto" loop src="image/bgm3.mp3"></audio>
+<audio id="selectSound" preload="auto" src="image/select.mp3"></audio>
+<audio id="startSound" preload="auto" src="image/start.mp3"></audio>
+<!-- qAudio สำหรับเสียงประกอบคำถาม -->
+<audio id="qAudio" preload="auto"></audio>
+
+<!-- ===== ปุ่ม Mute / Fullscreen ===== -->
+<button id="guideBtn" aria-pressed="false" title="กติกาการเล่น">📖</button>
+<button id="muteBtn" aria-pressed="false" title="Mute / Unmute">🔊</button>
+<button id="fsBtn" aria-pressed="false" title="เข้าสู่โหมดเต็มจอ">⛶</button>
+
+<!-- ===== ควบคุม Mute ===== -->
+<script>
+(function(){
+  const muteBtn = document.getElementById('muteBtn');
+  if(!muteBtn) return;
+  const bgmEl = document.getElementById('bgm');
+  let bgmMuted = false;
+  function applyBgmMute(m){
+    bgmMuted = !!m;
+    if (bgmEl){
+      bgmEl.muted = bgmMuted;
+      if (bgmMuted) bgmEl.setAttribute('muted','');
+      else bgmEl.removeAttribute('muted');
+    }
+    muteBtn.setAttribute('aria-pressed', String(bgmMuted));
+    muteBtn.textContent = bgmMuted ? '🔇' : '🔊';
+  }
+  muteBtn.addEventListener('click', () => applyBgmMute(!bgmMuted));
+})();
+</script>
+
+<!-- ===== ควบคุม Fullscreen ===== -->
+<script>
+(function(){
+  const fsBtn = document.getElementById('fsBtn');
+  if (!fsBtn) return;
+  function fsEnabled(){ return document.fullscreenEnabled || document.webkitFullscreenEnabled || document.msFullscreenEnabled }
+  function isFull(){ return document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement }
+  function requestFS(){ const el=document.documentElement; (el.requestFullscreen||el.webkitRequestFullscreen||el.msRequestFullscreen)?.call(el) }
+  function exitFS(){ (document.exitFullscreen||document.webkitExitFullscreen||document.msExitFullscreen)?.call(document) }
+  function render(){ const on=!!isFull(); fsBtn.setAttribute('aria-pressed', String(on)); fsBtn.title = on ? 'ออกจากโหมดเต็มจอ' : 'เข้าสู่โหมดเต็มจอ'; fsBtn.textContent = on ? '🗗' : '⛶' }
+  if (!fsEnabled()){ fsBtn.style.display='none'; return }
+  fsBtn.addEventListener('click', () => { if(isFull()) exitFS(); else requestFS() });
+  document.addEventListener('fullscreenchange', render);
+  document.addEventListener('webkitfullscreenchange', render);
+  document.addEventListener('msfullscreenchange', render);
+  render();
+})();
+</script>
+
+<!-- ===== ระบบเกม ===== -->
+<script>
+(()=>{
+window.__ALL_IMAGES_READY__ = false;
+
+/* ===== Auto Responsive Scale: welcome & landing ===== */
+function updateWelcomeScale(){
+  const wrap = document.querySelector('#welcome .welcome-inner');
+  if(!wrap) return;
+  wrap.style.setProperty('--welcome-scale', 1);
+  const rect = wrap.getBoundingClientRect();
+  const maxH = window.innerHeight * 0.95;
+  if(rect.height > maxH){
+    wrap.style.setProperty('--welcome-scale', maxH / rect.height);
+  }
+}
+
+function updateLandingScale(){
+  const wrap = document.querySelector('#landing .landing-inner');
+  if(!wrap) return;
+  wrap.style.setProperty('--landing-scale', 1);
+  const rect = wrap.getBoundingClientRect();
+  const maxH = window.innerHeight * 0.95;
+  if(rect.height > maxH){
+    wrap.style.setProperty('--landing-scale', maxH / rect.height);
+  }
+}
+
+window.addEventListener('load', ()=>{ updateWelcomeScale(); updateLandingScale(); });
+window.addEventListener('orientationchange', ()=>{ updateWelcomeScale(); updateLandingScale(); });
+setTimeout(()=>{ updateWelcomeScale(); updateLandingScale(); }, 600);
+
+if('ResizeObserver' in window){
+  const landingInner = document.querySelector('#landing .landing-inner');
+  if(landingInner){
+    new ResizeObserver(()=>requestAnimationFrame(updateLandingScale)).observe(landingInner);
+  }
+  const welcomeInner = document.querySelector('#welcome .welcome-inner');
+  if(welcomeInner){
+    new ResizeObserver(()=>requestAnimationFrame(updateWelcomeScale)).observe(welcomeInner);
+  }
+} else {
+  window.addEventListener('resize', ()=>{ updateWelcomeScale(); updateLandingScale(); });
+}
+/* ===== End Auto Responsive Scale ===== */
+
+  /* ---------- DOM ---------- */
+  const game = document.getElementById('game');
+  const qBox = document.getElementById('questionBox');
+  const qImg = document.getElementById('qImg');
+  const qStrip = document.getElementById('qStrip');
+  // qAudio สำหรับเสียงประกอบคำถาม
+  const qAudio = document.getElementById('qAudio');
+  const timebar = document.getElementById('timebar');
+  const timebarWrap = document.getElementById('timebarWrap');
+  const flash = document.getElementById('flash');
+  const toast = document.getElementById('roundToast');
+
+/* ===== Clock UI ===== */
+const clockEl = document.createElement('div');
+clockEl.id = 'clock';
+clockEl.className = 'clock-pill';
+clockEl.textContent = '02:00';
+document.body.appendChild(clockEl);
+
+let clockUIItv = null;
+let clockState = 'idle';
+
+function fmtClock(ms){
+  const total = Math.max(0, Math.ceil(ms/1000));
+  const m = String(Math.floor(total/60)).padStart(2,'0');
+  const s = String(total % 60).padStart(2,'0');
+  return m + ':' + s;
+}
+function renderClockFromGame(){
+  const ms = (clockState === 'run')
+    ? Math.max(0, (gameEndAt - performance.now()))
+    : remainingMs;
+  clockEl.textContent = fmtClock(ms);
+}
+function startClockUI(){ clockState='run'; if(!clockUIItv) clockUIItv=setInterval(renderClockFromGame,250); renderClockFromGame(); }
+function pauseClockUI(){ clockState='pause'; if(clockUIItv){clearInterval(clockUIItv);clockUIItv=null;} renderClockFromGame(); }
+function resumeClockUI(){ clockState='run'; if(!clockUIItv) clockUIItv=setInterval(renderClockFromGame,250); renderClockFromGame(); }
+function stopClockUI(){ clockState='end'; if(clockUIItv){clearInterval(clockUIItv);clockUIItv=null;} renderClockFromGame(); }
+function resetClockUI(){ clockState='idle'; if(clockUIItv){clearInterval(clockUIItv);clockUIItv=null;} clockEl.textContent=fmtClock(GAME_DURATION_MS); }
+
+  const overlay = document.getElementById('overlay');
+  const finalScoreEl = document.getElementById('finalScore');
+  const goldWrap = document.getElementById('goldWrap');
+  const restartBtn = document.getElementById('restartBtn');
+  const selectLevelBtn = document.getElementById('selectLevelBtn');
+
+  window.currentLevel = 1;
+
+  // Welcome -> Landing
+  (function(){
+    const welcome = document.getElementById('welcome');
+    const enterBtn = document.getElementById('enterBtn');
+    const landing = document.getElementById('landing');
+    enterBtn.addEventListener('click', async ()=>{
+      while (!window.__ALL_IMAGES_READY__) {
+        await new Promise(r=>setTimeout(r,120));
+      }
+      welcome.classList.add('hide');
+      landing.classList.remove('hide');
+      bgm?.play?.().catch(()=>{});
+    });
+  })();
+
+function renderGold(score){
+  const n = Number(score) || 0;
+  goldWrap.innerHTML = `<span class="num">${n}</span>`;
+  goldWrap.setAttribute('aria-label', `คะแนน ${n}`);
+}
+
+if (window.innerWidth < 480) {
+  goldWrap.style.setProperty('--score-size', '28px');
+}
+
+// เสียง
+const hitSound = document.getElementById('hitSound');
+const winSound = document.getElementById('winSound');
+const bgm = document.getElementById('bgm');
+const selectSound = document.getElementById('selectSound');
+const startSound = document.getElementById('startSound');
+
+  if (bgm) {
+    bgm.loop = true;
+    bgm.addEventListener('ended', () => {
+      try { bgm.currentTime=0; bgm.play()?.catch(()=>{}); } catch(_){}
+    });
+  }
+
+  const VOL_BGM    = 0.35;
+  const VOL_SELECT = 0.75;
+  const VOL_HIT    = 0.75;
+  const VOL_WIN    = 0.85;
+  const VOL_QAUDIO = 1.0;   // เสียงประกอบคำถาม
+  // const VOL_CORRECT = 1.0;
+  // const VOL_WRONG   = 0.65;
+
+  // currentCorrectSfx ไม่ใช้แล้ว
+  // let currentCorrectSfx = null;
+
+/* ===== Audio Pool ===== */
+const audioPool = new Map();
+
+function getAudioNode(src){
+  let arr = audioPool.get(src);
+  if (!arr){ arr=[]; audioPool.set(src,arr); }
+  const idle = arr.find(a => a.paused || a.ended);
+  if (idle){ idle.currentTime=0; return idle; }
+  if (arr.length >= 3){ const a=arr[0]; a.currentTime=0; return a; }
+  const a = new Audio(src);
+  a.preload = 'auto';
+  arr.push(a);
+  return a;
+}
+
+function playAudio(src, vol=1){
+  if (!src) return;
+  const a = getAudioNode(src);
+  a.volume = Math.max(0, Math.min(1, vol));
+  a.muted  = false;
+  a.play().catch(()=>{});
+}
+
+function stopAllAudio(resetQ=false){
+  try{
+    document.getElementById('bgm')?.pause?.();
+    // หยุดเสียงประกอบคำถาม
+    stopQuestionAudio();
+    if (typeof audioPool !== 'undefined'){
+      for (const arr of audioPool.values()){
+        for (const a of arr){ try{a.pause();a.currentTime=0;}catch(_){} }
+      }
+    }
+  }catch(_){}
+}
+
+function applyBackendVolume(){ if(bgm)bgm.volume=VOL_BGM; if(selectSound)selectSound.volume=VOL_SELECT; if(hitSound)hitSound.volume=VOL_HIT; if(winSound)winSound.volume=VOL_WIN; }
+applyBackendVolume();
+
+/* =====================================================================
+   ระบบเสียงประกอบคำถาม (Question Audio)
+   - ไฟล์: sound1/karan1.mp3, sound2/karan1.mp3, sound3/karan1.mp3
+   - index ตรงกับตำแหน่งข้อมูลใน MANUAL_Lx (1-based)
+   - พรีโหลดทั้งด่านก่อนเริ่มเล่น แคชไว้ตลอด session
+   - ด่าน 4 ไม่มีเสียง (ข้ามได้ ไม่พัง)
+   ===================================================================== */
+const LEVELS_WITH_AUDIO = [1, 2, 3]; // ด่านที่มีเสียง (ด่าน 4 ไม่มี)
+const __qAudioCache = new Map();      // key: "sound{lv}/karan{n}.mp3" → HTMLAudioElement
+let __qAudioCurrent = null;           // ตัวที่กำลังเล่นอยู่
+
+/* สร้าง path ไฟล์เสียงคำถาม */
+function qAudioPath(lv, dataIndex){
+  // dataIndex คือตำแหน่งใน MANUAL_Lx (0-based) → ไฟล์ karan(n+1).mp3
+  return `sound${lv}/karan${dataIndex + 1}.mp3`;
+}
+
+/* หยุดเสียงคำถามที่กำลังเล่น */
+function stopQuestionAudio(){
+  try{
+    if (__qAudioCurrent){
+      __qAudioCurrent.pause();
+      __qAudioCurrent.currentTime = 0;
+      __qAudioCurrent = null;
+    }
+    if (qAudio){
+      qAudio.pause();
+      qAudio.currentTime = 0;
+      qAudio.removeAttribute('src');
+    }
+  }catch(_){}
+}
+
+/* พรีโหลดเสียงทั้งด่านที่เลือก (เก็บแคชไว้ตลอด session) */
+function preloadLevelAudio(lv){
+  if (!LEVELS_WITH_AUDIO.includes(Number(lv))) return Promise.resolve();
+  const bank = getBankForLevel(lv);
+  const toLoad = [];
+  bank.forEach((_, i) => {
+    const path = qAudioPath(lv, i);
+    if (!__qAudioCache.has(path)){
+      const a = new Audio();
+      a.preload = 'auto';
+      __qAudioCache.set(path, a);
+      toLoad.push(new Promise(res => {
+        a.addEventListener('canplaythrough', res, {once:true});
+        a.addEventListener('error', res, {once:true}); // โหลดไม่ได้ก็ข้ามได้
+        a.src = path;
+        a.load();
+      }));
+    }
+  });
+  return Promise.allSettled(toLoad);
+}
+
+/* เล่นเสียงคำถามตาม dataIndex จริงของ MANUAL_Lx */
+function playQuestionAudio(lv, dataIndex){
+  try{
+    stopQuestionAudio();
+    if (!LEVELS_WITH_AUDIO.includes(Number(lv))) return;
+    const path = qAudioPath(lv, dataIndex);
+    const cached = __qAudioCache.get(path);
+    if (!cached) return; // ไฟล์นี้โหลดไม่ได้ → ข้ามเงียบๆ
+    if (cached.error) return; // โหลด error → ข้าม
+
+    // ใช้ cached audio โดยตรง (เพื่อความเร็ว ไม่ต้องสร้างใหม่)
+    cached.currentTime = 0;
+    cached.volume = VOL_QAUDIO;
+    cached.muted = false;
+    __qAudioCurrent = cached;
+    cached.play().catch(()=>{ __qAudioCurrent = null; });
+  }catch(_){}
+}
+/* ===================================================================== */
+
+function isBgmMuted(){ return !!document.getElementById('bgm')?.muted; }
+
+function playSfx(el,vol){
+  try{
+    const n = el?.cloneNode(true);
+    if(!n) return;
+    n.volume = (typeof vol==='number') ? Math.max(0,Math.min(1,vol)) : (el.volume??1);
+    n.muted  = false;
+    n.play?.();
+  }catch(_){}
+}
+
+function playStartSfx(){
+  if (!startSound) return;
+  playSfx(startSound, 1.0);
+}
+
+  const rand=(min,max)=>Math.floor(Math.random()*(max-min+1))+min;
+  const pick=(arr)=>arr[rand(0,arr.length-1)];
+  const shuffle=(arr)=>{ const A=arr.slice(); for(let i=A.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [A[i],A[j]]=[A[j],A[i]] } return A };
+
+/* Dragon System */
+const DRAGON_THRESHOLD = 15;
+const DRAGON_DURATION_MS = 2500;
+const DRAGON_Y_PAD = 60;
+
+function pickDragonSrcByScore(sc){
+  if ((Number(sc)||0) < DRAGON_THRESHOLD) return "image/dragon1.png";
+  const n = rand(2,4);
+  return `image/dragon${n}.png`;
+}
+
+async function runDragonSystemBeforeSummary(){
+  if (!ended) return;
+  const layer = document.getElementById('dragonLayer');
+  const img   = document.getElementById('dragonFly');
+  const dragonSoundEl = document.getElementById('dragonSound');
+  if (!layer || !img) return;
+  const src = pickDragonSrcByScore(score);
+  img.src = src;
+  try{ await img.decode(); }catch(_){}
+  layer.style.display = 'block';
+  const rect0 = img.getBoundingClientRect();
+  const h = rect0.height || 200;
+  const yMin = DRAGON_Y_PAD;
+  const yMax = Math.max(yMin, innerHeight - h - DRAGON_Y_PAD);
+  const y = Math.round(yMin + Math.random() * (yMax - yMin));
+  img.style.top = y + 'px';
+  const rect = img.getBoundingClientRect();
+  const w = rect.width || 400;
+  const travel = innerWidth + w + 240;
+  const durationMs = DRAGON_DURATION_MS;
+  try{
+    if (dragonSoundEl){
+      dragonSoundEl.currentTime=0; dragonSoundEl.muted=false; dragonSoundEl.volume=1.0;
+      dragonSoundEl.play()?.catch(()=>{});
+    } else { playAudio("image/dragon.mp3", 1.0); }
+  }catch(_){}
+  img.style.transform = 'translateX(0px)';
+  await new Promise(res=>{
+    const anim = img.animate(
+      [{ transform:'translateX(0px)' },{ transform:`translateX(-${travel}px)` }],
+      { duration:durationMs, easing:'linear', fill:'forwards' }
+    );
+    anim.onfinish = ()=> res();
+    setTimeout(res, durationMs+250);
+  });
+  layer.style.display = 'none';
+}
+
+/* คะแนนลอยขึ้น */
+function flyScoreAt(x, y, ok){
+  const sp = document.createElement('div');
+  sp.className = 'fly-score ' + (ok ? 'ok' : 'bad');
+  sp.textContent = ok ? '+1' : '-1';
+  sp.style.left = x + 'px';
+  sp.style.top  = y + 'px';
+  document.body.appendChild(sp);
+  sp.addEventListener('animationend', ()=> sp.remove(), {once:true});
+}
+
+function flyScoreForEl(el, ok){
+  flyScoreAt(innerWidth / 2, innerHeight / 2, ok);
+}
+
+  /* ---------- สถานะเกม ---------- */
+const GAME_DURATION_MS = 120000;
+let gameTimerId = null;
+let gameEndAt = 0;
+let remainingMs = GAME_DURATION_MS;
+
+function clearGameTimer(){
+  if (gameTimerId){ clearTimeout(gameTimerId); gameTimerId=null; }
+}
+
+function scheduleGameTimer(ms){
+  clearGameTimer();
+  gameTimerId = setTimeout(()=>{
+    if(!ended){ endLevel(); }
+  }, Math.max(0, ms|0));
+}
+
+function startGameTimer(){
+  remainingMs = GAME_DURATION_MS;
+  gameEndAt = performance.now() + remainingMs;
+  scheduleGameTimer(remainingMs);
+  startClockUI();
+}
+
+function pauseGameTimer(){
+  if (gameTimerId){
+    remainingMs = Math.max(0, gameEndAt - performance.now());
+    clearGameTimer();
+    pauseClockUI();
+  }
+}
+
+function resumeGameTimer(){
+  if (remainingMs > 0 && !ended){
+    gameEndAt = performance.now() + remainingMs;
+    scheduleGameTimer(remainingMs);
+    resumeClockUI();
+  }
+}
+
+  const BLANK_MS=800, Q_DROP_MS=400, Q_HOLD_MS=200, OPT_IN_MS=200, RESULT_MS=1000;
+
+  let running=false, ended=false, paused=false;
+  window.ended = ended;
+  let score=0, round=0;
+  let roundTimer=null, timeLeft=0, awaitingAnswer=false;
+
+let __timeouts = [];
+function setT(fn, ms){
+  const id = setTimeout(fn, ms);
+  __timeouts.push(id);
+  return id;
+}
+function clearAllTimeouts(){
+  __timeouts.forEach(id => clearTimeout(id));
+  __timeouts = [];
+}
+
+function hardClearScene(){
+  awaitingAnswer = false;
+  clearRoundObjects();
+  stopQuestionAudio(); // หยุดเสียงคำถามก่อนล้างฉาก
+  // qStrip/qImg ซ่อนถาวรแล้ว ไม่ต้องจัดการ
+  if (qBox){
+    qBox.textContent = '';
+    qBox.style.display = 'none';
+  }
+  const ansImg = document.getElementById('ansImg');
+  if (toast){ toast.style.display='none'; toast.innerHTML=''; }
+  if (ansImg){ ansImg.style.display='none'; ansImg.removeAttribute('src'); }
+  // currentCorrectSfx ไม่ใช้แล้ว
+}
+
+  let driftTimers = [];
+  function clearDrifts(){ driftTimers.forEach(id=>clearInterval(id)); driftTimers=[]; }
+  function clearRoundObjects(){ clearDrifts(); document.querySelectorAll('.option').forEach(n=>n.remove()); }
+
+function restorePlayfield(){
+  game.style.visibility = 'visible';
+  qBox.style.display    = 'block';
+}
+
+function freezePlayfield(on){
+  awaitingAnswer = false;
+  stopTimebar();
+  clearRoundObjects();
+  qBox.textContent='';
+  qBox.style.display = on ? 'none' : 'block';
+  game.style.visibility = on ? 'hidden' : 'visible';
+}
+
+  function updateHUD(){ renderGold(score); }
+
+function resetState(){ 
+  clearCountdown();
+  running=false; ended=true; window.ended=ended; paused=false;
+  clearRoundObjects();
+  clearGameTimer();
+  if (roundTimer){ clearInterval(roundTimer); roundTimer=null; }
+  document.body.classList.remove('in-game');
+  score=0; round=0; timeLeft=0; awaitingAnswer=false;
+  updateHUD();
+  qBox.textContent='';
+  qBox.style.display='none';
+  stopTimebar();
+  resetClockUI();
+  game.style.visibility='visible';
+}
+
+  function showToast(payload){
+    const ansImg = document.getElementById('ansImg');
+    const data = (typeof payload==='object'&&payload) ? payload : {q:String(payload||''),a:'',ok:false};
+    const {q='',a='',ok=false} = data;
+    const esc=(s)=>String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    toast.innerHTML=`<span class="q">${esc(q)}</span><span class="a">${esc(a||'—')}</span><span class="r ${ok?'ok':'bad'}">${ok?'ถูกต้อง':'ไม่ถูกต้อง'}</span>`;
+    toast.style.display='inline-block';
+    if(ansImg){ansImg.onerror=()=>{ansImg.style.display='none'};ansImg.src='image/ans1.png';ansImg.style.display='block';}
+    const playFlashIn=(el,cover=false)=>{if(!el)return;el.classList.remove('flash-in','flash-in-cover');void el.offsetWidth;el.classList.add(cover?'flash-in-cover':'flash-in');el.addEventListener('animationend',()=>el.classList.remove('flash-in','flash-in-cover'),{once:true});};
+    playFlashIn(ansImg,true); playFlashIn(toast,false);
+    setTimeout(()=>{toast.style.display='none';if(ansImg)ansImg.style.display='none';},RESULT_MS);
+  }
+
+function startTimebar(){}
+function stopTimebar(){}
+function updateTimebar(){}
+
+
+/* =============================================================
+   ระบบคำถาม "ตัวการันต์" แบบกำหนดเอง
+   - question: ข้อความหน้าเส้นว่าง เช่น "สัต"
+   - correct: คำตอบถูก เช่น "ว์"
+   - decoys: ตัวเลือกหลอก เช่น ["ตว์", "ว", "ต์"]
+   ระบบจะสุ่มเลือกข้อหลอก 1 อัน และสลับซ้าย/ขวาให้อัตโนมัติ
+   ============================================================= */
+
+/* ป้องกัน HTML เพี้ยน ถ้ามีอักขระพิเศษ */
+function escHTML(s){
+  return String(s ?? '').replace(/[&<>"']/g, m => ({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#39;'
+  }[m]));
+}
+
+/* สร้าง HTML โจทย์: question + เส้นว่าง */
+function buildPromptHTML(question){
+  return `${escHTML(question)}<span class="blank-slot">___</span>`;
+}
+
+/* =============================================================
+   คลังโจทย์แต่ละด่าน
+   วิธีใส่:
+   { question:"สัต", correct:"ว์", decoys:["ตว์"] }
+
+   ตัวอย่างผลลัพธ์:
+   โจทย์แสดง: สัต___
+   ตัวเลือกถูก: ว์
+   ตัวเลือกหลอก: ตว์
+   ============================================================= */
+
+const MANUAL_L1 = [
+  { question:"ดวงจันท",     correct:"ร์",   decoys:["ย์"] },
+  { question:"ต้นโพธ",      correct:"ิ์",   decoys:["์"] },
+  { question:"สวดมน",       correct:"ต์",   decoys:["ท์"] },
+  { question:"มนุษ",        correct:"ย์",   decoys:["ร์"] },
+  { question:"สงกราน",      correct:"ต์",   decoys:["ค์"] },
+  { question:"สวรร",        correct:"ค์",   decoys:["ธ์"] },
+  { question:"อาทิต",       correct:"ย์",   decoys:["ร์"] },
+  { question:"เลี้ยงสัต",   correct:"ว์",   decoys:["ต์"] },
+  { question:"เจดี",        correct:"ย์",   decoys:["ร์"] },
+  { question:"โจท",         correct:"ย์",   decoys:["ร์"] },
+  { question:"ขุมทรัพ",     correct:"ย์",   decoys:["ธ์"] },
+  { question:"ความทุก",      correct:"ข์",   decoys:["ค์"] },
+  { question:"พระเทศ",      correct:"น์",   decoys:["ย์"] },
+  { question:"บริบูร",      correct:"ณ์",   decoys:["ย์"] },
+  { question:"ประจัก",      correct:"ษ์",   decoys:["ข์"] },
+  { question:"ประพัน",      correct:"ธ์",   decoys:["ท์"] },
+  { question:"ประสง",       correct:"ค์",   decoys:["ข์"] },
+  { question:"ปรากฏการ",    correct:"ณ์",   decoys:["ย์"] },
+  { question:"เผ่าพัน",     correct:"ธุ์",  decoys:["ธ์"] },
+  { question:"ภาพยน",       correct:"ตร์",  decoys:["ต์"] },
+  { question:"พระสง",       correct:"ฆ์",   decoys:["ข์"] },
+  { question:"พิสูจ",       correct:"น์",   decoys:["ย์"] },
+  { question:"อาจาร",       correct:"ย์",   decoys:["ร์"] },
+  { question:"อุปถัม",      correct:"ภ์",   decoys:["พ์"] },
+];
+
+const MANUAL_L2 = [
+  { question:"ประโยช",        correct:"น์",    decoys:["ย์"] },
+  { question:"เสน่",          correct:"ห์",    decoys:["ษ์"] },
+  { question:"พระอินท",       correct:"ร์",    decoys:["ย์"] },
+  { question:"โบส",           correct:"ถ์",    decoys:["ธ์"] },
+  { question:"สัญลัก",        correct:"ษณ์",   decoys:["ษ์"] },
+  { question:"กษัตร",         correct:"ริย์",   decoys:["ย์"] },
+  { question:"วิเคราะ",       correct:"ห์",    decoys:["ษ์"] },
+  { question:"กรรมสิท",      correct:"ธิ์",    decoys:["ย์"] },
+  { question:"กองกูณ",        correct:"ฑ์",    decoys:["ธ์"] },
+  { question:"เกษมศาน",       correct:"ต์",    decoys:["ฑ์"] },
+  { question:"คณิตศาส",       correct:"ตร์",   decoys:["ต์"] },
+  { question:"คาดการ",        correct:"ณ์",    decoys:["ย์"] },
+  { question:"คำประพัน",      correct:"ธ์",    decoys:["ท์"] },
+  { question:"คอมพิวเต",      correct:"อร์",   decoys:["ต์"] },
+  { question:"สังเคราะ",      correct:"ห์",    decoys:["ษ์"] },
+  { question:"จาบัล",         correct:"ย์",    decoys:["ร์"] },
+  { question:"จุลินทร",       correct:"ีย์",   decoys:["ย์"] },
+  { question:"เนืองนิ",       correct:"ตย์",   decoys:["ต์"] },
+  { question:"บรรดาศักด",     correct:"ิ์",    decoys:["ย์"] },
+  { question:"ประวัติศาส",    correct:"ตร์",   decoys:["ต์"] },
+  { question:"ประยุก",        correct:"ต์",    decoys:["ฑ์"] },
+  { question:"ไปรษณ",         correct:"ีย์",   decoys:["ย์"] },
+  { question:"พระสง",         correct:"ฆ์",    decoys:["ข์"] },
+  { question:"ภาพยน",         correct:"ตร์",   decoys:["ต์"] },
+  { question:"มนุษ",          correct:"ย์",    decoys:["ร์"] },
+  { question:"รถยน",          correct:"ต์",    decoys:["ฑ์"] },
+  { question:"สัญลัก",        correct:"ษณ์",   decoys:["ษ์"] },
+  { question:"สายสิญจ",       correct:"น์",    decoys:["ย์"] },
+  { question:"พระโอษ",        correct:"ฐ์",    decoys:["ธ์"] },
+  { question:"อนุรัก",        correct:"ษ์",    decoys:["ห์"] },
+];
+
+const MANUAL_L3 = [
+  { question:"กฎเกณ",          correct:"ฑ์",    decoys:["ณ์"] },
+  { question:"กิตติศัพ",       correct:"ท์",    decoys:["พ์"] },
+  { question:"ศาสนาคริส",      correct:"ต์",    decoys:["ฑ์"] },
+  { question:"ฉลองพระอง",      correct:"ค์",    decoys:["ฆ์"] },
+  { question:"เชาว",           correct:"น์",    decoys:["ย์"] },
+  { question:"ซื่อสัต",        correct:"ย์",    decoys:["ร์"] },
+  { question:"โทรทัศ",         correct:"น์",    decoys:["ย์"] },
+  { question:"บัลลัง",         correct:"ก์",    decoys:["ข์"] },
+  { question:"ประดิษ",         correct:"ฐ์",    decoys:["ธ์"] },
+  { question:"ปาฏิหาร",        correct:"ิย์",   decoys:["ย์"] },
+  { question:"พยัค",           correct:"ฆ์",    decoys:["ข์"] },
+  { question:"พระราชนิพน",     correct:"ธ์",    decoys:["ท์"] },
+  { question:"เครื่องพิม",      correct:"พ์",    decoys:["ภ์"] },
+  { question:"เวทมน",          correct:"ตร์",   decoys:["ต์"] },
+  { question:"รังสรร",         correct:"ค์",    decoys:["ฆ์"] },
+  { question:"ลิฟ",            correct:"ต์",    decoys:["ฑ์"] },
+  { question:"วัตถุประสง",      correct:"ค์",    decoys:["ข์"] },
+  { question:"ศักดิ์สิทธ",      correct:"ิ์",    decoys:["ย์"] },
+  { question:"ศูน",            correct:"ย์",    decoys:["ร์"] },
+  { question:"สแตม",           correct:"ป์",    decoys:["พ์"] },
+  { question:"อนุรัก",         correct:"ษ์",    decoys:["ห์"] },
+  { question:"เอกลัก",         correct:"ษณ์",   decoys:["ษ์"] },
+  { question:"พิพิธภัณ",        correct:"ฑ์",    decoys:["ธ์"] },
+  { question:"ประสบการ",       correct:"ณ์",    decoys:["ย์"] },
+  { question:"เหตุการ",        correct:"ณ์",    decoys:["ย์"] },
+  { question:"วิจาร",          correct:"ณ์",    decoys:["ย์"] },
+  { question:"พยากร",          correct:"ณ์",    decoys:["ย์"] },
+  { question:"สัมภาษ",         correct:"ณ์",    decoys:["ย์"] },
+  { question:"อุปกร",          correct:"ณ์",    decoys:["ย์"] },
+  { question:"สัมพัน",         correct:"ธ์",    decoys:["ท์"] },
+  { question:"สร้างสรร",       correct:"ค์",    decoys:["ข์"] },
+  { question:"บริสุทธ",        correct:"ิ์",    decoys:["ย์"] },
+  { question:"คัมภี",          correct:"ร์",    decoys:["ย์"] },
+  { question:"อัศจรร",         correct:"ย์",    decoys:["ร์"] },
+  { question:"ทิวทัศ",         correct:"น์",    decoys:["ย์"] },
+  { question:"ผลลัพ",          correct:"ธ์",    decoys:["ท์"] },
+  { question:"สังเคราะ",       correct:"ห์",    decoys:["ษ์"] },
+];
+
+const MANUAL_L4 = [
+  { question:"กฎเกณ",         correct:"ฑ์",    decoys:["ณ์"] },
+  { question:"กิตติศัพ",      correct:"ท์",    decoys:["พท์"] },
+  { question:"ชอล",           correct:"์ก",    decoys:["อล์ก"] },
+  { question:"เชาว",          correct:"น์",    decoys:["วน์"] },
+  { question:"มน",            correct:"ตร์",   decoys:["นตร์"] },
+];
+
+/* ดึงคลังตามด่าน */
+function getBankForLevel(lv){
+  switch(Number(lv)){
+    case 1: return MANUAL_L1;
+    case 2: return MANUAL_L2;
+    case 3: return MANUAL_L3;
+    case 4: return MANUAL_L4;
+    default: return MANUAL_L1;
+  }
+}
+
+/* ตัวนับ/ลำดับสุ่มของแต่ละด่าน */
+let __ordKL1=[], __idxKL1=0;
+let __ordKL2=[], __idxKL2=0;
+let __ordKL3=[], __idxKL3=0;
+let __ordKL4=[], __idxKL4=0;
+
+function getOrderStateByLevel(lv){
+  if (lv === 1) return { 
+    get order(){ return __ordKL1; }, 
+    set order(v){ __ordKL1 = v; }, 
+    get idx(){ return __idxKL1; }, 
+    set idx(v){ __idxKL1 = v; } 
+  };
+
+  if (lv === 2) return { 
+    get order(){ return __ordKL2; }, 
+    set order(v){ __ordKL2 = v; }, 
+    get idx(){ return __idxKL2; }, 
+    set idx(v){ __idxKL2 = v; } 
+  };
+
+  if (lv === 3) return { 
+    get order(){ return __ordKL3; }, 
+    set order(v){ __ordKL3 = v; }, 
+    get idx(){ return __idxKL3; }, 
+    set idx(v){ __idxKL3 = v; } 
+  };
+
+  return { 
+    get order(){ return __ordKL4; }, 
+    set order(v){ __ordKL4 = v; }, 
+    get idx(){ return __idxKL4; }, 
+    set idx(v){ __idxKL4 = v; } 
+  };
+}
+
+/* เลือกข้อหลอก 1 อันจาก decoys */
+function pickDecoy(item){
+  const list = Array.isArray(item.decoys) ? item.decoys.filter(Boolean) : [];
+  if (list.length) return pick(list);
+
+  // fallback กันเกมพัง ถ้าลืมใส่ decoys
+  if (item.decoy) return item.decoy;
+
+  return "ผิด";
+}
+
+function drawQuestion(){
+  const lv = Number(window.currentLevel) || 1;
+  const bank = getBankForLevel(lv);
+  const state = getOrderStateByLevel(lv);
+
+  if (!bank.length){
+    return {
+      mode: 'manual-karan',
+      displayBase: 'ไม่มีข้อมูล',
+      fullWord: '',
+      choices: ['-', 'ผิด'],
+      correctIndex: 0
+    };
+  }
+
+  if (!state.order.length || state.idx >= state.order.length){
+    state.order = shuffle([...Array(bank.length).keys()]);
+    state.idx = 0;
+  }
+
+  const raw = bank[state.order[state.idx]];
+  const dataIndex = state.order[state.idx]; // index จริงใน MANUAL_Lx
+  state.idx++;
+
+  const correct = String(raw.correct ?? '');
+  let decoy = String(pickDecoy(raw));
+
+  // กันข้อหลอกซ้ำกับข้อถูก
+  if (decoy === correct){
+    decoy = correct + 'x';
+  }
+
+  // สุ่มว่าข้อถูกอยู่ซ้ายหรือขวา
+  const swapped = Math.random() < 0.5;
+  const choices = swapped ? [decoy, correct] : [correct, decoy];
+  const correctIndex = swapped ? 1 : 0;
+
+  return {
+    mode: 'manual-karan',
+    displayBase: raw.question,
+    correct,
+    decoy,
+    dataIndex,   // ← index จริงใน MANUAL_Lx สำหรับเล่นเสียง
+    fullWord: String(raw.fullWord ?? `${raw.question}${correct}`),
+    choices,
+    correctIndex
+  };
+}
+
+/* แสดงโจทย์ในกล่องข้อความ */
+function dropQuestionText(q){
+  if (!qBox) return;
+
+  qBox.style.display = 'block';
+  qBox.style.opacity = '0';
+  qBox.style.transform = 'translateX(-50%) translateY(-20px)';
+  qBox.innerHTML = buildPromptHTML(q.displayBase);
+
+  requestAnimationFrame(()=>{
+    qBox.style.transition = 'opacity 350ms ease, transform 350ms cubic-bezier(.2,.9,.2,1)';
+    qBox.style.opacity = '1';
+    qBox.style.transform = 'translateX(-50%) translateY(0)';
+  });
+}
+
+function slideOutText(){
+  return new Promise(res=>{
+    stopQuestionAudio(); // หยุดเสียงคำถามเก่าก่อนขึ้นข้อใหม่
+    if (!qBox){
+      res();
+      return;
+    }
+
+    qBox.style.transition = 'opacity 350ms ease';
+    qBox.style.opacity = '0';
+
+    setTimeout(()=>{
+      qBox.style.transform = 'translateX(-50%)';
+      res();
+    }, 380);
+  });
+}
+
+
+  /* ---------- ตัวเลือก 2 วงกลม ---------- */
+  function clearOptionGlows(){ document.querySelectorAll('.option.circle.glow').forEach(n=>n.classList.remove('glow')); }
+  function glowGold(el){ if(!el) return; el.classList.add('glow'); }
+
+function spawnTwoAnswerCircles(choices, correctIndex){
+  const order = Math.random()<0.5 ? ['left','right'] : ['right','left'];
+  const defs = [
+    { idx:0, text: choices[0], side: order[0], cls:'choiceA' },
+    { idx:1, text: choices[1], side: order[1], cls:'choiceB' },
+  ];
+  defs.forEach(def=>{
+    const el = document.createElement('div');
+    el.className = `option circle in-anim ${def.cls}`;
+    el.dataset.side = def.side;
+    el.dataset.correct = String(def.idx === correctIndex);
+    const label = document.createElement('div');
+    label.className = 'label';
+    label.textContent = def.text;
+    el.appendChild(label);
+    game.appendChild(el);
+
+    const SAFE_PAD = 12;
+    const prevTransform = el.style.transform;
+    el.style.transform = 'none';
+    const cs = getComputedStyle(el);
+    const core = parseFloat(cs.getPropertyValue('--c-sz')) || parseFloat(cs.width) || 180;
+    const border = (parseFloat(cs.borderLeftWidth)||0)+(parseFloat(cs.borderRightWidth)||0);
+    const realSize = Math.round(core + border);
+    el.style.transform = prevTransform;
+
+    const yMin = 200; // ต่ำลงมาหน่อยเพื่อไม่ทับกล่องคำถาม
+    const yMax = Math.max(240, innerHeight - realSize - SAFE_PAD);
+    const totalMaxX = innerWidth - realSize - SAFE_PAD;
+
+    const leftZoneStart  = SAFE_PAD;
+    const leftZoneEnd    = Math.max(SAFE_PAD, Math.min(totalMaxX, (innerWidth/3)-SAFE_PAD));
+    const rightZoneStart = Math.max(SAFE_PAD, Math.min(totalMaxX, Math.ceil((innerWidth*2)/3)));
+    const rightZoneEnd   = totalMaxX;
+
+    let xMin, xMax;
+    if (def.side==='left'){ xMin=leftZoneStart; xMax=leftZoneEnd-realSize; }
+    else { xMin=rightZoneStart; xMax=rightZoneEnd; }
+    if (!isFinite(xMin)||!isFinite(xMax)||xMin>xMax){ xMin=SAFE_PAD; xMax=totalMaxX; }
+
+    const nx0 = Math.round(xMin + Math.random() * Math.max(0, xMax-xMin));
+    const ny0 = Math.round(yMin + Math.random() * Math.max(0, yMax-yMin));
+    el.style.left = nx0 + 'px';
+    el.style.top  = ny0 + 'px';
+
+    // สุ่มสีขอบ
+    const borderColors = ['#FF6B6B','#FFD93D','#6BCB77','#4D96FF','#FF8FAB','#A47CFF','#FFB84C'];
+    const mode = Math.random() < 0.5 ? 0 : 1;
+    let borderColor = '';
+    if (mode===0){ borderColor=borderColors[Math.floor(Math.random()*borderColors.length)]; }
+    else { const hue=Math.floor(Math.random()*360); borderColor=`hsl(${hue},80%,60%)`; }
+    el.style.border = '12px solid ' + borderColor;
+    el.style.boxShadow = `0 0 20px ${borderColor}40`;
+
+    el.addEventListener('animationend', ()=>{
+      el.classList.remove('in-anim');
+      el.style.opacity='1';
+      el.style.transform='none';
+      el.classList.add('pulse-loop');
+    }, {once:true});
+
+    el.addEventListener('click', ()=> tryAnswer(el));
+  });
+}
+
+
+function tryAnswer(el){
+  if (ended) return;
+  if(!awaitingAnswer) return;
+  const ok = (el.dataset.correct === 'true');
+  awaitingAnswer=false;
+
+  // เสียงตอบถูก/ผิด
+  try{
+    if (ok){
+      const s = selectSound?.cloneNode(true);
+      if (s){ s.muted=false; s.play?.(); }
+    } else {
+      const h = hitSound?.cloneNode(true);
+      if (h){ h.muted=false; h.play?.(); }
+    }
+  }catch(_){}
+
+  el.classList.add('pop-out');
+  el.addEventListener('animationend', ()=>{
+    if(el&&el.parentNode){ el.remove(); }
+  }, {once:true});
+
+  document.querySelectorAll('.option.circle').forEach(btn=>{
+    if(btn!==el){
+      btn.classList.add('fade-out');
+      btn.addEventListener('animationend', ()=>btn.remove(), {once:true});
+    }
+  });
+
+  const side = el.dataset.side || ((el.getBoundingClientRect().left < innerWidth/2) ? 'left' : 'right');
+
+  // slide out กล่องข้อความ แทนการ slide strip
+  slideOutText(side).then(()=>{
+    endRound(ok, el, false);
+  });
+}
+
+  function endRound(ok, pickedElOrNull, timeout=false){
+  clearInterval(roundTimer); stopTimebar();
+
+  if (ok){ score+=1; } else { score-=1; }
+  updateHUD();
+  flyScoreForEl(pickedElOrNull||null, ok);
+
+setT(()=>{
+  if (ended) return;
+  const hide=(el)=>{if(!el)return;el.style.transition='none';el.style.opacity='0';el.style.pointerEvents='none';};
+  document.querySelectorAll('.option').forEach(hide);
+  timebarWrap.style.opacity='0';
+
+  clearRoundObjects();
+  qBox.textContent=''; qBox.style.opacity='1';
+  timebarWrap.style.opacity='1';
+
+  round++; updateHUD();
+
+  nextRound();
+}, 1200);
+}
+
+function nextRound(){
+  if (ended) return;
+  clearRoundObjects(); awaitingAnswer=false; stopTimebar();
+  qBox.textContent='';
+  qBox.style.display='none';
+
+setT(()=>{
+  if (ended) return;
+
+  const q = drawQuestion();
+  // แสดงโจทย์แบบข้อความ
+  dropQuestionText(q);
+  // เล่นเสียงประกอบคำถาม (ตาม dataIndex จริงใน MANUAL_Lx)
+  playQuestionAudio(window.currentLevel, q.dataIndex);
+
+  setT(()=>{
+    if (ended) return;
+    spawnTwoAnswerCircles(q.choices, q.correctIndex);
+    awaitingAnswer = true;
+  }, OPT_IN_MS);
+
+}, Q_DROP_MS + Q_HOLD_MS);
+}
+
+function startRoundTimer(){
+  awaitingAnswer = true;
+}
+
+async function startGame(){
+  while (!window.__ALL_IMAGES_READY__) {
+    await new Promise(r => setTimeout(r, 120));
+  }
+  // พรีโหลดเสียงของด่านที่เลือก (ถ้าแคชอยู่แล้วจะเร็วมาก)
+  try{ await preloadLevelAudio(window.currentLevel); }catch(_){}
+  document.body.classList.remove('prestart');
+  document.body.classList.add('in-game');
+  running=true; ended=false; paused=false;
+  window.ended=ended;
+  overlay.style.visibility='hidden'; overlay.style.opacity='0';
+  score=0; round=0; updateHUD();
+  startGameTimer();
+  nextRound();
+}
+
+async function endLevel(titleText='หมดเวลา'){
+  if (ended) return;
+  ended=true; window.ended=ended;
+  awaitingAnswer=false;
+  pauseGameTimer?.();
+  clearGameTimer?.();
+  stopClockUI?.();
+  try{ stopAllAudio(true); }catch(_){}
+  try{ freezePlayfield(true); }catch(_){}
+  try{ await runDragonSystemBeforeSummary(); }catch(_){}
+  try{
+    const endTitle=document.getElementById('endTitle');
+    if(endTitle) endTitle.textContent=titleText;
+    if(finalScoreEl) finalScoreEl.textContent=String(score);
+    overlay.style.visibility='visible'; overlay.style.opacity='1';
+    if(winSound) playSfx(winSound, VOL_WIN);
+  }catch(_){}
+}
+
+  function getBadgeEmoji(sc){
+    if (sc<=5) return '🐥';
+    if (sc<=8) return '🦣';
+    if (sc<=12) return '🐅';
+    if (sc<=15) return '🐦‍🔥';
+    if (sc<=20) return '🐉';
+    return '🏆';
+  }
+
+function pauseGame(){
+  if(!running||paused) return;
+  paused=true;
+  clearInterval(roundTimer);
+  document.querySelectorAll('.option').forEach(n=> n.style.pointerEvents='none');
+  try{ if(__qAudioCurrent){ __qAudioCurrent.pause(); } }catch(_){}
+  pauseGameTimer();
+}
+
+  function resumeGame(){ if(!paused||ended)return; paused=false;
+    document.querySelectorAll('.option').forEach(n=> n.style.pointerEvents='auto');
+    bgm?.play?.().catch(()=>{});
+    try{ if(__qAudioCurrent){ __qAudioCurrent.play().catch(()=>{}); } }catch(_){}
+    resumeGameTimer();
+  }
+
+  document.getElementById('pauseBtn')?.addEventListener('click', ()=>{
+    if(!paused){ pauseGame(); document.getElementById('pauseBtn').textContent='▶️ ต่อ'; }
+    else { resumeGame(); document.getElementById('pauseBtn').textContent='⏸ หยุด'; }
+  });
+
+document.getElementById('quickRestart')?.addEventListener('click', ()=>{
+  clearCountdown();
+  clearAllTimeouts();
+  stopQuestionAudio(); // หยุดเสียงคำถามก่อนกลับหน้าหลัก
+  hardClearScene();
+  clearGameTimer();
+  stopClockUI();
+  document.body.classList.remove('prestart');
+  restorePlayfield();
+  overlay.style.visibility='hidden'; overlay.style.opacity='0';
+  resetState();
+  document.body.classList.remove('in-game');
+  document.getElementById('startScreen').style.display='none';
+  document.getElementById('landing').classList.remove('hide');
+  bgm.currentTime=0; bgm.play().catch(()=>{});
+});
+
+  restartBtn.addEventListener('click', ()=>{
+    restorePlayfield();
+    overlay.style.visibility='hidden'; overlay.style.opacity='0';
+    resetState();
+    bgm.currentTime=0; bgm.play().catch(()=>{});
+    startGame();
+  });
+
+selectLevelBtn.addEventListener('click', ()=>{
+  clearCountdown();
+  clearAllTimeouts();
+  stopQuestionAudio(); // หยุดเสียงคำถามก่อนกลับหน้าหลัก
+  hardClearScene();
+  clearGameTimer();
+  stopClockUI();
+  document.body.classList.remove('prestart');
+  restorePlayfield();
+  overlay.style.visibility='hidden'; overlay.style.opacity='0';
+  resetState();
+  document.getElementById('landing').classList.remove('hide');
+  document.getElementById('startScreen').style.display='none';
+  bgm.currentTime=0; bgm.play().catch(()=>{});
+});
+
+  const startScreen  = document.getElementById('startScreen');
+  const startBtn     = document.getElementById('startBtn');
+  const countdownEl  = document.getElementById('countdown');
+
+let countdownItv = null;
+function clearCountdown(){
+  if (countdownItv){ clearInterval(countdownItv); countdownItv=null; }
+  countdownEl.style.display='none';
+  countdownEl.textContent='3';
+  startBtn.style.display='inline-block';
+  startBtn.disabled=false;
+  startBtn.style.pointerEvents='auto';
+}
+
+  function openStart(autoCountdown=true){
+  clearCountdown();
+    document.body.classList.add('prestart');
+    startScreen.style.display='flex';
+  if (autoCountdown) {
+    let n=3;
+    countdownEl.textContent=n;
+    countdownEl.style.display='block';
+    countdownItv=setInterval(()=>{
+      n--;
+      if(n>0){ countdownEl.textContent=n; }
+      else {
+        clearInterval(countdownItv); countdownItv=null;
+        startScreen.style.display='none';
+        playStartSfx();
+        startGame();
+      }
+    },1000);
+  } else {
+    startBtn.disabled=false; startBtn.style.pointerEvents='auto';
+    startBtn.style.display='inline-block'; countdownEl.style.display='none';
+  }
+  }
+
+  startBtn?.addEventListener('click', ()=>{
+    clearCountdown();
+    if(startBtn.disabled) return;
+    startBtn.disabled=true; startBtn.style.pointerEvents='none';
+    startBtn.style.display='none';
+    let n=3;
+    countdownEl.textContent=n;
+    countdownEl.style.display='block';
+    countdownItv=setInterval(()=>{
+      n--;
+      if(n>0){ countdownEl.textContent=n; }
+      else {
+        clearInterval(countdownItv); countdownItv=null;
+        startScreen.style.display='none';
+        playStartSfx();
+        startGame();
+        startBtn.disabled=false; startBtn.style.pointerEvents='auto';
+      }
+    },1000);
+  });
+
+  document.getElementById('guideBtn')?.addEventListener('click', ()=>{ document.getElementById('landing').classList.add('hide'); document.getElementById('guideScreen').style.display='flex' });
+  document.getElementById('guideBack')?.addEventListener('click', ()=>{ document.getElementById('guideScreen').style.display='none'; document.getElementById('landing').classList.remove('hide') });
+
+  let wasRunning=false;
+  function uiBlockingOpen(){
+    const landing=document.getElementById('landing');
+    const startOpen=startScreen&&startScreen.style.display!=='none';
+    const guide=document.getElementById('guideScreen');
+    const guideOpen=getComputedStyle(guide).display!=='none';
+    const overlayOpen=overlay.style.visibility==='visible';
+    return overlayOpen||(!landing.classList.contains('hide'))||startOpen||guideOpen;
+  }
+  function handleHidden(){ wasRunning=running&&!ended&&!uiBlockingOpen(); if(wasRunning) pauseGame(); }
+  function handleVisible(){ if(wasRunning&&paused&&!ended&&!uiBlockingOpen()) resumeGame(); wasRunning=false; }
+  document.addEventListener('visibilitychange',()=>{ if(document.hidden) handleHidden(); else handleVisible(); });
+  window.addEventListener('blur', handleHidden); window.addEventListener('focus', handleVisible);
+
+})();
+</script>
+
+<!-- ===== คำสั่งเสียง (ไม่มีปุ่ม micBtn จึงไม่ทำงาน) ===== -->
+<script>
+(function(){
+  const micBtn = document.getElementById('micBtn');
+  if(!micBtn) return;
+  // ... (ไม่มีการเปลี่ยนแปลง)
+})();
+</script>
+
+<!-- ===== Pose AR ===== -->
+<script type="module">
+import {PoseLandmarker, FilesetResolver} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3";
+const camBtn = document.getElementById('camBtn');
+const video  = document.getElementById('cameraMirror');
+const cvs    = document.getElementById('camCanvas');
+const ctx    = cvs.getContext('2d', { alpha: true });
+const DETECT_W = 320;
+let detectCanvas = document.createElement('canvas');
+let detectCtx = detectCanvas.getContext('2d', { alpha:false, desynchronized:true });
+let CAM_ON=false, landmarker=null, raf=0, stream=null;
+
+function fitCanvas(){ const dpr=CAM_ON?1:Math.max(1,window.devicePixelRatio||1); cvs.width=Math.round(innerWidth*dpr); cvs.height=Math.round(innerHeight*dpr); cvs.style.width=innerWidth+'px'; cvs.style.height=innerHeight+'px'; ctx.setTransform(1,0,0,1,0,0); ctx.scale(dpr,dpr) }
+fitCanvas(); addEventListener('resize', fitCanvas);
+function coverCropRect(){ const vw=video.videoWidth||640,vh=video.videoHeight||480; const sw=innerWidth,sh=innerHeight; const scale=Math.max(sw/vw,sh/vh); const sW=Math.round(sw/scale),sH=Math.round(sh/scale); const sX=Math.round((vw-sW)/2),sY=Math.round((vh-sH)/2); return{sX,sY,sW,sH,vw,vh,sw,sh} }
+function mapToScreen(nx,ny){ const{sX,sY,sW,sH,vw,vh,sw,sh}=coverCropRect(); const px=nx*vw,py=ny*vh; const u=(px-sX)/sW,v=(py-sY)/sH; let x=u*sw,y=v*sh; x=sw-x; return{x,y} }
+const SHOW_HAND_BALL=false;
+const lastHitAt=new WeakMap();
+const HIT_LOCK_MS=160;
+function circleIntersectsRect(cx,cy,r,rc){ const nx=Math.max(rc.left,Math.min(cx,rc.right)); const ny=Math.max(rc.top,Math.min(cy,rc.bottom)); const dx=cx-nx,dy=cy-ny; return(dx*dx+dy*dy)<=r*r }
+function hitByCircle(center,r){
+  if(window.ended) return;
+  const opts=[...document.querySelectorAll('.option')];
+  for(const n of opts){
+    const rc=n.getBoundingClientRect();
+    if(circleIntersectsRect(center.x,center.y,r,rc)){
+      const t=performance.now(); const last=lastHitAt.get(n)||0;
+      if(t-last<HIT_LOCK_MS) continue;
+      lastHitAt.set(n,t); n.click();
+    }
+  }
+}
+async function ensureLandmarker(){ if(landmarker) return landmarker; const fileset=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"); landmarker=await PoseLandmarker.createFromOptions(fileset,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task"},runningMode:'VIDEO',numPoses:1,minPoseDetectionConfidence:.35,minPosePresenceConfidence:.35,minTrackingConfidence:.35}); return landmarker }
+function drawHandBall(elbowIdx,wristIdx,lm){ if(!lm[elbowIdx]||!lm[wristIdx]) return null; const elbow=mapToScreen(lm[elbowIdx].x,lm[elbowIdx].y); const wrist=mapToScreen(lm[wristIdx].x,lm[wristIdx].y); const r=24; const L=Math.max(1,Math.hypot(wrist.x-elbow.x,wrist.y-elbow.y)); const ux=(wrist.x-elbow.x)/L,uy=(wrist.y-elbow.y)/L; const HAND_PUSH=1.5,PUSH_PX=6; const center={x:wrist.x+ux*(r*HAND_PUSH+PUSH_PX),y:wrist.y+uy*(r*HAND_PUSH+PUSH_PX)}; if(SHOW_HAND_BALL){ctx.beginPath();ctx.arc(center.x,center.y,r,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle='#fff';ctx.stroke();} hitByCircle(center,r*.95); return center }
+function drawPoseAndColliders(res){ const sw=innerWidth,sh=innerHeight; ctx.clearRect(0,0,sw,sh); if(!res?.landmarks?.length) return; const lm=res.landmarks[0]; drawHandBall(13,15,lm); drawHandBall(14,16,lm) }
+function runLoop(){ const step=()=>{ if(!video.videoWidth){raf=requestAnimationFrame(step);return} const now=performance.now(); try{const{sX,sY,sW,sH}=coverCropRect();detectCtx.drawImage(video,sX,sY,sW,sH,0,0,detectCanvas.width,detectCanvas.height);const res=landmarker.detectForVideo(detectCanvas,now);drawPoseAndColliders(res)}catch(e){} raf=requestAnimationFrame(step) }; raf=requestAnimationFrame(step) }
+async function startCamera(){ await ensureLandmarker(); stream=await navigator.mediaDevices.getUserMedia({video:{width:960,height:540,frameRate:30,facingMode:'user'},audio:false}); video.srcObject=stream; await video.play().catch(()=>{}); const vw=video.videoWidth||640,vh=video.videoHeight||480; const ratio=vw/vh; detectCanvas.width=DETECT_W; detectCanvas.height=Math.round(DETECT_W/ratio); video.style.display='block'; cvs.style.display='block'; camBtn.textContent='📷 กล้อง: เปิด'; CAM_ON=true; fitCanvas(); runLoop() }
+function stopCamera(){ cancelAnimationFrame(raf); if(stream){stream.getTracks().forEach(t=>t.stop());stream=null} try{video.pause()}catch(e){} video.removeAttribute('srcObject'); video.style.display='none'; cvs.style.display='none'; ctx.clearRect(0,0,innerWidth,innerHeight); camBtn.textContent='📷 กล้อง: ปิด'; CAM_ON=false; fitCanvas() }
+camBtn.addEventListener('click', async()=>{ if(!stream){ try{await startCamera()}catch(err){camBtn.textContent='📷 กล้อง: ไม่ได้รับอนุญาต';camBtn.disabled=true} }else{stopCamera()} });
+document.addEventListener('visibilitychange',()=>{ if(document.hidden&&stream) stopCamera() });
+</script>
+
+<!-- ===== เมนู/เริ่มเกม ===== -->
+<script>
+(()=>{
+  const landing = document.getElementById('landing');
+  const startScreen = document.getElementById('startScreen');
+  const guideScreen = document.getElementById('guideScreen');
+
+  document.querySelectorAll('.levelBtn').forEach(btn=>{
+    if(btn.id==='guideBtn') return;
+    btn.addEventListener('click', ()=>{
+      const lv = Number(btn.dataset.level || 1);
+      window.currentLevel = lv;
+      document.body.classList.add('prestart');
+      landing.classList.add('hide');
+      startScreen.style.display='flex';
+
+      const startBtn    = document.getElementById('startBtn');
+      const countdownEl = document.getElementById('countdown');
+      if(startBtn){ startBtn.style.display='inline-block'; startBtn.disabled=false; startBtn.style.pointerEvents='auto'; }
+      if(countdownEl){ countdownEl.style.display='none'; countdownEl.textContent='3'; }
+
+      const st = document.getElementById('startTitle');
+      if(st) st.textContent = 'ภารกิจ : เลือกตัวการันต์ให้ถูกต้อง';
+    });
+  });
+
+  document.getElementById('guideBtn')?.addEventListener('click', ()=>{ landing.classList.add('hide'); guideScreen.style.display='flex'; });
+  document.getElementById('guideBack')?.addEventListener('click', ()=>{ guideScreen.style.display='none'; landing.classList.remove('hide'); });
+})();
+</script>
+
+<!-- ===== Preload Overlay ===== -->
+<script>
+// Preload เฉพาะรูป UI (ไม่มีรูปคำถามอีกต่อไป)
+(function(){
+  const uiImages = [
+    "image/background2.png","image/banner2.png","image/welcome.png",
+    "image/guide.png","image/button1.png","image/button2.png","image/ans1.png"
+  ];
+  let loaded = 0;
+  const bar  = document.getElementById('preloadBar');
+  const text = document.getElementById('preloadText');
+
+  function onDone(){
+    loaded++;
+    const pct = Math.round((loaded/uiImages.length)*100);
+    if(bar) bar.style.width = pct+'%';
+    if(text) text.textContent = `กำลังเตรียมข้อมูล… ${pct}%`;
+    if(loaded >= uiImages.length){
+      document.getElementById('preloadOverlay')?.remove();
+      window.__ALL_IMAGES_READY__ = true;
+    }
+  }
+
+  if(!uiImages.length){ document.getElementById('preloadOverlay')?.remove(); window.__ALL_IMAGES_READY__=true; return; }
+
+  uiImages.forEach(src=>{
+    const img = new Image();
+    img.onload = img.onerror = onDone;
+    img.src = src;
+  });
+})();
+</script>
+
+<div id="preloadOverlay" style="
+  position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+  background:#000c; color:#fff; z-index:99999; flex-direction:column; gap:12px; font-weight:900;">
+  <div id="preloadText" style="font-size:20px">กำลังเตรียมข้อมูล… 0%</div>
+  <div style="width:min(80vw,480px); height:10px; background:#ffffff22; border-radius:999px; overflow:hidden">
+    <div id="preloadBar" style="height:100%; width:0%; background:#10b981"></div>
+  </div>
+  <div style="font-size:12px;opacity:.8">...รอสักครู่...</div>
+</div>
+
+</body>
+</html>
